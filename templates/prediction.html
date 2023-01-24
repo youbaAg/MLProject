@@ -1,0 +1,24 @@
+<h2>accuracy : {{results.accuracy|round(2)}}</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Metric</th>
+            <th>precision</th>
+            <th>recall</th>
+            <th>f1-score</th>
+            <th>support</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for metric, values in results.items() %}
+            <tr>
+                {% if metric != 'accuracy' %}
+                    <td>{{ metric }}</td>
+                    {% for k, value in values.items() %}
+                        <td>{{ value|round(2) }}</td>
+                    {% endfor %}
+                {% endif %}    
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
