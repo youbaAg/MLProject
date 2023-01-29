@@ -156,6 +156,32 @@ class Model:
         # Afficher les résultats de classification en utilisant les données de test
         return classification_report(self.y_test, model_loaded.predict(self.X_test),output_dict=True)
 
+    def regression_opt(self):
+        logistic_model = self.load_model_regression()
+        parametres ={'C': [0.1, 0.05,1.2,1, 10], 'penalty': ['l1', 'l2']}
+        logistic_opt_model = GridSearchCV(logistic_model, param_grid=parametres,cv=5,verbose=1)
+        logistic_opt_model.fit(self.X_train,self.y_train)
+        return classification_report(self.y_test,logistic_opt_model.predict(self.X_test) ,output_dict=True)
+    def knn_opt(self):
+        knn_model = self.load_model_knn()
+        parametres = {
+            'algorithm' : ('auto', 'ball_tree'),
+            'weights' : ['uniform'],
+            'n_neighbors':[2,3,4]
+        }
+        knn_opt_model = GridSearchCV(knn_model, param_grid=parametres,cv=3,verbose=1, n_jobs=-1)
+        knn_opt_model.fit(self.X_train,self.y_train)
+        return classification_report(self.y_test,knn_opt_model.predict(self.X_test) ,output_dict=True)
+    
+    def random_forest_opt(self):
+        random_forest_model = self.load_model_random_forest()
+        parameters = {'criterion' : ("gini", "entropy"),
+              'n_estimators':[50,100,120,150,200]
+        }
+        random_opt_model = GridSearchCV(random_forest_model, param_grid=parameters,cv=5,verbose=1)
+        random_opt_model.fit(self.X_train,self.y_train)
+        return classification_report(self.y_test,random_opt_model.predict(self.X_test) ,output_dict=True)
+
 
 
 @app.route("/", methods = ['GET', 'POST'])
@@ -164,8 +190,8 @@ def index():
     if form.validate_on_submit():
         session['model'] = form.model.data
         session['optimize'] = form.optimize.data
-
-        return redirect(url_for("prediction")) 
+        
+        return redirect(url_for("prediction"))
     return render_template("home.html", form = form)
 
 @app.route("/prediction")
@@ -178,17 +204,29 @@ def prediction():
 
     content['model'] = session['model']
 
-    if(content['model'] == 'logistic'):
-        model.train_save_model_regression()
-        result_logistic = model.display_results(model.load_model_regression())
-        results = result_logistic
-    elif((content['model'] == 'knn')):
-        model.train_save_model_knn()
-        result_knn = model.display_results(model.load_model_knn())
-        results = result_knn
-    elif((content['model'] == 'random_forest')):
-        model.train_save_model_random_forest()
-        result_random = model.display_results(model.load_model_random_forest())
-        results = result_random
+    if(session['optimize'] == False):
+        if(content['model'] == 'logistic'):
+            model.train_save_model_regression()
+            result_logistic = model.display_results(model.load_model_regression())
+            results = result_logistic
+        elif((content['model'] == 'knn')):
+            model.train_save_model_knn()
+            result_knn = model.display_results(model.load_model_knn())
+            results = result_knn
+        elif((content['model'] == 'random_forest')):
+            model.train_save_model_random_forest()
+            result_random = model.display_results(model.load_model_random_forest())
+            results = result_random
+    else:
+        if(content['model'] == 'logistic'):
+            result_logistic = model.regression_opt()
+            results = result_logistic
+        elif((content['model'] == 'knn')):
+            result_knn = model.knn_opt()
+            results = result_knn
+        elif((content['model'] == 'random_forest')):
+            result_random = model.random_forest_opt()
+            results = result_random
+        
 
     return render_template("prediction.html", results = results)
