@@ -1,24 +1,51 @@
-<h2>accuracy : {{results.accuracy|round(2)}}</h2>
-<table>
-    <thead>
-        <tr>
-            <th>Metric</th>
-            <th>precision</th>
-            <th>recall</th>
-            <th>f1-score</th>
-            <th>support</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for metric, values in results.items() %}
-            <tr>
-                {% if metric != 'accuracy' %}
-                    <td>{{ metric }}</td>
-                    {% for k, value in values.items() %}
-                        <td>{{ value|round(2) }}</td>
-                    {% endfor %}
-                {% endif %}    
-            </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+    }
+
+    th {
+    background-color: #af4242;
+    }
+</style>
+</head>
+<body>
+    <div class="w3-container w3-card w3-white w3-margin-bottom" style="text-align:center">
+        <h2 class="w3-text-teal w3-padding-16"><i class="fa fa-suitcase fa-fw w3-margin-right w3-xxlarge w3-text-teal"></i>Accuracy: {{results.accuracy|round(2)}}</h2>
+    </div>
+    <div class="w3-container">
+    <table class="w3-table-all w3-hoverable">
+            <thead>
+                <tr class="w3-teal">
+                    <th>Metric</th>
+                    <th>Precision</th>
+                    <th>Recall</th>
+                    <th>F1-score</th>
+                    <th>Support</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for metric, values in results.items() %}
+                    {% if metric != 'accuracy' %}
+                        <tr>
+                            <td>{{ metric }}</td>
+                            {% for k, value in values.items() %}
+                                <td>{{ value|round(2) }}</td>
+                            {% endfor %}
+                        </tr>
+                    {% endif %}    
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

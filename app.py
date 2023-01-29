@@ -1,8 +1,10 @@
 from flask import Flask, jsonify, request, render_template, url_for, session, redirect
 import pandas as pd
 import requests
+import pickle
 import zipfile
 import io
+import os
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from hyperopt import fmin, tpe, hp
@@ -13,11 +15,18 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, ConfusionMatrixDisplay
 from flask_wtf import FlaskForm
-from wtforms import RadioField, SubmitField, StringField
+from wtforms import RadioField, SubmitField,BooleanField
 
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
+
+class ModelForm(FlaskForm):
+    model_choices = [('logistic', 'Logistic Regression'), ('knn', 'K-Nearest Neighbors'), ('random_forest', 'Random Forest')]
+    model = RadioField('Model', choices=model_choices)
+    optimize = BooleanField('choice')
+    submit = SubmitField('Submit')
+
 
 class DataLoader:
     """
@@ -34,7 +43,6 @@ class DataLoader:
         z.extract(csv_file)
         df = pd.read_csv(csv_file)
         return df
-    
 
     """
         Cette méthode enlève les lignes vides et supprime certaines colonnes inutiles du DataFrame.
@@ -65,8 +73,8 @@ class DataLoader:
     """
     @staticmethod
     def scale_data(X_train, X_test):
-        scaler = StandardScaler()
-        X_train = scaler.fit_transform(X_train)
+        scaler = StandardScaler().fit(X_train)
+        X_train = scaler.transform(X_train)
         X_test = scaler.transform(X_test)
         return X_train, X_test
 
@@ -84,77 +92,103 @@ class Model:
         self.y_train = y_train
         self.y_test = y_test
         
-    def regression_logistic(self):
-        logistic_model = LogisticRegression()
-        logistic_model.fit(self.X_train, self.y_train)
-        #y_pred = logistic_model.predict(self.X_test)
-        #ConfusionMatrixDisplay.from_predictions(self.y_test, y_pred)
-        return(classification_report(self.y_test, logistic_model.predict(self.X_test),output_dict=True))
-        
-    def model_knn(self):
-        knn_model = KNeighborsClassifier()
-        knn_model.fit(self.X_train, self.y_train)
-        #y_pred = knn_model.predict(self.X_test)
-        #print(classification_report(self.y_test, y_pred))
-        return(classification_report(self.y_test, knn_model.predict(self.X_test),output_dict=True))
-        
-    def random_forest(self):
-        random_model = RandomForestClassifier()
-        random_model.fit(self.X_train, self.y_train)
-        parameters = {'criterion' : ("gini", "entropy"), 'n_estimators':[50,100,120,150,200]}
-        random_opt_model = GridSearchCV(random_model, param_grid=parameters, cv=5, verbose=1)
-        random_opt_model.fit(self.X_train, self.y_train)
-        y_opt_pred = random_opt_model.predict(self.X_test)
-        ConfusionMatrixDisplay.from_predictions(self.y_test, y_opt_pred)
-        print(classification_report(self.y_test, y_opt_pred))
+    def train_save_model_regression(self):
+        if os.path.exists('logistic_regression_model.pkl'):
+            return
+        else:
+            # Initialiser le modèle de régression logistique
+            logistic_model = LogisticRegression()
+            # Appliquer le modèle aux données d'entraînement
+            logistic_model.fit(self.X_train, self.y_train)
+            # Ouvrir un fichier pour enregistrer le modèle
+            with open('logistic_regression_model.pkl', 'wb') as file:
+                # Enregistrer le modèle dans le fichier
+                pickle.dump(logistic_model, file)
+    
+    def train_save_model_knn(self):
+        if os.path.exists('knn_model.pkl'):
+            return
+        else:
+            # Initialiser le modèle knn
+            knn_model = KNeighborsClassifier()
+            # Appliquer le modèle aux données d'entraînement
+            knn_model.fit(self.X_train, self.y_train)
+            # Ouvrir un fichier pour enregistrer le modèle
+            with open('knn_model.pkl', 'wb') as file:
+                # Enregistrer le modèle dans le fichier
+                pickle.dump(knn_model, file)
+    
+    def train_save_model_random_forest(self):
+        if os.path.exists('random_model.pkl'):
+            return
+        else:
+            # Initialiser le modèle random forest
+            random_model = RandomForestClassifier()
+            # Appliquer le modèle aux données d'entraînement
+            random_model.fit(self.X_train, self.y_train)
+            # Ouvrir un fichier pour enregistrer le modèle
+            with open('random_model.pkl', 'wb') as file:
+                # Enregistrer le modèle dans le fichier
+                pickle.dump(random_model, file)
 
-class ModelForm(FlaskForm):
-    model_choices = [('logistic', 'Logistic Regression'), ('knn', 'K-Nearest Neighbors'), ('random_forest', 'Random Forest')]
-    model = RadioField('Model', choices=model_choices)
+    def load_model_regression(self):
+        # Ouvrir le fichier où le modèle est enregistré
+        with open('logistic_regression_model.pkl', 'rb') as file:
+            # Charger le modèle à partir du fichier
+            model_loaded = pickle.load(file)
+        return model_loaded
 
-    submit = SubmitField('Submit')
+    def load_model_knn(self):
+        # Ouvrir le fichier où le modèle est enregistré
+        with open('knn_model.pkl', 'rb') as file:
+            # Charger le modèle à partir du fichier
+            model_loaded = pickle.load(file)
+        return model_loaded
+    
+    def load_model_random_forest(self):
+        # Ouvrir le fichier où le modèle est enregistré
+        with open('random_model.pkl', 'rb') as file:
+            # Charger le modèle à partir du fichier
+            model_loaded = pickle.load(file)
+        return model_loaded
+    
+    def display_results(self,model_loaded):
+        # Afficher les résultats de classification en utilisant les données de test
+        return classification_report(self.y_test, model_loaded.predict(self.X_test),output_dict=True)
 
-@app.route('/select_model')
-def select_model():
-    form = ModelForm()
-    return render_template('select_model.html', form=form)
-
-@app.route('/regression_logistic', methods=['POST'])
-def route_regression():
-    data_loader = DataLoader()
-    X_train, X_test, y_train, y_test = data_loader.prepa_data()
-    model = Model(X_train, X_test, y_train, y_test)
-    report = model.regression_logistic()
-
-    return report
-
-@app.route('/knn')
-def route__knn():
-    data_loader = DataLoader()
-    X_train, X_test, y_train, y_test = data_loader.prepa_data()
-    model = Model(X_train, X_test, y_train, y_test)
-    report = model.model_knn()
-    return report
 
 
 @app.route("/", methods = ['GET', 'POST'])
 def index():
-    form = ModelForm()
+    form = ModelForm() 
     if form.validate_on_submit():
         session['model'] = form.model.data
-        return redirect(url_for("prediction"))
-    
+        session['optimize'] = form.optimize.data
+
+        return redirect(url_for("prediction")) 
     return render_template("home.html", form = form)
 
 @app.route("/prediction")
 def prediction():
+    data_loader = DataLoader()
+    X_train, X_test, y_train, y_test = data_loader.prepa_data()
+    model = Model(X_train, X_test, y_train, y_test)
+
     content = {}
 
     content['model'] = session['model']
-    
+
     if(content['model'] == 'logistic'):
-        results = route_regression()
+        model.train_save_model_regression()
+        result_logistic = model.display_results(model.load_model_regression())
+        results = result_logistic
     elif((content['model'] == 'knn')):
-        results = route__knn()
+        model.train_save_model_knn()
+        result_knn = model.display_results(model.load_model_knn())
+        results = result_knn
+    elif((content['model'] == 'random_forest')):
+        model.train_save_model_random_forest()
+        result_random = model.display_results(model.load_model_random_forest())
+        results = result_random
 
     return render_template("prediction.html", results = results)
