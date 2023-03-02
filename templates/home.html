@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Select Model</title>
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+  </head>
+  <body>
+    <div class="w3-container w3-center">
+      <h1 class="w3-xxlarge w3-text-black">Select a Model</h1>
+      <form method="POST" class="w3-container w3-card-4 w3-light-grey w3-text-black w3-margin">
+        {{form.hidden_tag()}}
+        <div class="w3-row w3-section">
+          <div class="w3-col" style="width:50px"><i class="w3-xxlarge fa fa-pencil"></i></div>
+          <div class="w3-rest w3-center">
+            <div style="display: flex; justify-content: center; flex-direction: column; align-items:center;">
+              {% for choice in form.model.choices %}
+                <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                  <input type="radio" id="{{ choice[0] }}" name="{{ form.model.name }}" value="{{ choice[0] }}">
+                  <label for="{{ choice[0] }}" style="margin-left: 10px;">{{ choice[1] }}</label>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        <br>
+        <div class="w3-row w3-section">
+          <div class="w3-col" style="width:50px"></div>
+            <label class="w3-text-black">Voulez-vous optimiser votre modèle ?</label> {{ form.optimize(class="w3-checkbox") }}
+        </div>
+        <br>
+        {{form.submit(class="w3-btn w3-black")}}
+      </form>
+    </div>
+  </body>
+</html>
